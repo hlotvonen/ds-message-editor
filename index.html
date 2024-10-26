@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message editor and builder</title>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        h2,h3 {
+            font-size: medium;
+        }
+        h2 {
+            margin: 0;
+        }
+        body {
+            background: rgb(255, 255, 255);
+            color: black;
+            max-width: 1440px;
+            margin: 0 auto 200px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(min(480px,100%),1fr));
+            gap: 10px;
+        }
+        .editor-section {
+            gap: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid black;
+        }
+        .editor-section:first-child {
+            grid-column: 1 / -1;
+        }
+        textarea, input {
+            border: 1px solid black;
+            padding: 4px;
+        }
+        .result {
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            border: 1px solid black;
+        }
+        #importInput {
+            display: none;
+        }
+        .inputs {
+            display: flex;
+            gap: 5px;
+        }
+        .inputs input {
+            flex:1;
+        }
+        .items {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+            margin-bottom: 3px;
+        }
+        .items:nth-child(even) {
+            background-color: lemonchiffon;
+        }
+        .items:nth-child(odd) {
+            background-color: lavenderblush;
+        }
+        .message-builder {
+            margin-top: 20px;
+        }
+        
+    </style>
+</head>
+<body>
+    <div x-data="messageEditor()">
+        <h1>Message Editor</h1>
+
+        <div class="data-controls">
+            <button @click="exportData">Export Data</button>
+            <label class="import-label">
+                <span>Import Data</span>
+                <input 
+                    type="file" 
+                    accept=".json" 
+                    @change="importData" 
+                    class="file-input"
+                >
+            </label>
+        </div>
+
+        <div class="container">
+            <!-- Templates Section -->
+            <div class="editor-section">
+                <h2>Templates</h2>
+                <div class="inputs">
+                    <input type="text" x-model="newTemplate" placeholder="Enter template (use **** for noun placement)">
+                    <button @click="addTemplate">Add Template</button>
+                </div>
+                <div>
+                    <template x-for="(template, index) in data.templates" :key="index">
+                        <div class="items">
+                            <span x-text="template"></span>
+                            <button @click="removeTemplate(index)">Remove</button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Categories Section -->
+            <div class="editor-section">
+                <h2>Categories</h2>
+                <div class="inputs">
+                    <input type="text" x-model="newCategory" placeholder="Enter category">
+                    <button @click="addCategory">Add Category</button>
+                </div>
+                <div>
+                    <template x-for="category in getCategoryNames()" :key="category">
+                        <div class="items">
+                            <button 
+                                class="category-btn"
+                                :class="{ 'active': selectedCategory === category }"
+                                @click="selectedCategory = category"
+                                x-text="category"
+                            ></button>
+                            <button @click="removeCategory(category)">Remove</button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Nouns Section -->
+            <div class="editor-section">
+                <h2>Nouns</h2>
+                <div x-show="selectedCategory">
+                    <h3 x-text="'Category: ' + selectedCategory"></h3>
+                    <div class="inputs">
+                        <input type="text" x-model="newNoun" placeholder="Enter noun">
+                        <button @click="addNoun">Add Noun</button>
+                    </div>
+                    <div>
+                        <template x-for="noun in data.categories[selectedCategory]" :key="noun">
+                            <div class="items">
+                                <span x-text="noun"></span>
+                                <button @click="removeNoun(noun)">Remove</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <div x-show="!selectedCategory">
+                    <p>Select a category to edit nouns</p>
+                </div>
+            </div>
+
+            <!-- Conjunctions Section -->
+            <div class="editor-section">
+                <h2>Conjunctions</h2>
+                <div class="inputs">
+                    <input type="text" x-model="newConjunction" placeholder="Enter conjunction">
+                    <button @click="addConjunction">Add Conjunction</button>
+                </div>
+                <div>
+                    <template x-for="(conjunction, index) in data.conjunctions" :key="index">
+                        <div class="items">
+                            <span x-text="conjunction"></span>
+                            <button @click="removeConjunction(index)">Remove</button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Builder -->
+        <div class="message-builder">
+            <h1>Message Builder</h1>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h2>Add first message</h2>
+                    <select x-model="selectedTemplate1">
+                        <option value="">Select Template</option>
+                        <template x-for="template in data.templates" :key="template">
+                            <option x-text="template"></option>
+                        </template>
+                    </select>
+                    <select x-model="selectedCategory1">
+                        <option value="">Select Category</option>
+                        <template x-for="category in getCategoryNames()" :key="category">
+                            <option x-text="category"></option>
+                        </template>
+                    </select>
+                    <select x-model="selectedNoun1" x-show="selectedCategory1">
+                        <option value="">Select Noun</option>
+                        <template x-for="noun in data.categories[selectedCategory1] || []" :key="noun">
+                            <option x-text="noun"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div x-show="selectedTemplate1 && selectedNoun1">
+                    <h2>
+                        <label>
+                            <input type="checkbox" x-model="useConjunction">
+                            Add conjunction and second message
+                        </label>
+                    </h2>
+                    <template x-if="useConjunction">
+                        <div>
+                            <select x-model="selectedConjunction">
+                                <option value="">Select Conjunction</option>
+                                <template x-for="conjunction in data.conjunctions" :key="conjunction">
+                                    <option x-text="conjunction"></option>
+                                </template>
+                            </select>
+                            <select x-model="selectedTemplate2">
+                                <option value="">Select Template</option>
+                                <template x-for="template in data.templates" :key="template">
+                                    <option x-text="template"></option>
+                                </template>
+                            </select>
+                            <select x-model="selectedCategory2">
+                                <option value="">Select Category</option>
+                                <template x-for="category in getCategoryNames()" :key="category">
+                                    <option x-text="category"></option>
+                                </template>
+                            </select>
+                            <select x-model="selectedNoun2" x-show="selectedCategory2">
+                                <option value="">Select Noun</option>
+                                <template x-for="noun in data.categories[selectedCategory2] || []" :key="noun">
+                                    <option x-text="noun"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="result" x-text="generateMessage()"></div>
+        </div>
+    </div>
+    
+    <script>
+        const downloadJSON = (data, filename) => {
+            try {
+                const href = `data:application/json;charset=utf-8,${encodeURIComponent(
+                    JSON.stringify(data, null, 2)
+                )}`;
+                Object.assign(document.createElement('a'), {
+                    href,
+                    download: filename
+                }).click();
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Failed to export data');
+            }
+        };
+
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('messageEditor', () => ({
+                data: JSON.parse(localStorage.getItem('messageData') || JSON.stringify({
+                    templates: [],
+                    categories: {},
+                    conjunctions: []
+                })),
+                newTemplate: '',
+                newCategory: '',
+                newNoun: '',
+                newConjunction: '',
+                selectedCategory: '',
+                selectedTemplate1: '',
+                selectedCategory1: '',
+                selectedNoun1: '',
+                selectedConjunction: '',
+                selectedTemplate2: '',
+                selectedCategory2: '',
+                selectedNoun2: '',
+                useConjunction: false,
+
+                getCategoryNames() {
+                    return Object.keys(this.data.categories);
+                },
+
+                saveToLocalStorage() {
+                    localStorage.setItem('messageData', JSON.stringify(this.data));
+                },
+
+                exportData() {
+                    downloadJSON(this.data, 'message-templates.json');
+                },
+
+                importData(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const importedData = JSON.parse(e.target.result);
+                                this.data = importedData;
+                                this.saveToLocalStorage();
+                                alert('Data imported successfully!');
+                            } catch (error) {
+                                alert('Error importing data. Please check the file format.');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                },
+
+                addTemplate() {
+                    if (this.newTemplate.trim() && !this.data.templates.includes(this.newTemplate.trim())) {
+                        this.data.templates.push(this.newTemplate.trim());
+                        this.newTemplate = '';
+                        this.saveToLocalStorage();
+                    } else {
+                        alert('Template already exists!');
+                    }
+                },
+
+                addCategory() {
+                    if (this.newCategory.trim()) {
+                        const category = this.newCategory.trim();
+                        if (!this.data.categories[category]) {
+                            this.data.categories[category] = [];
+                            this.newCategory = '';
+                            this.saveToLocalStorage();
+                        } else {
+                            alert('Category already exists!');
+                        }
+                    }
+                },
+
+                addNoun() {
+                    if (this.newNoun.trim() && this.selectedCategory) {
+                        if (!this.data.categories[this.selectedCategory].includes(this.newNoun.trim())) {
+                            this.data.categories[this.selectedCategory].push(this.newNoun.trim());
+                            this.newNoun = '';
+                            this.saveToLocalStorage();
+                        } else {
+                            alert('Noun already exists!');
+                        }
+                    }
+                },
+
+                addConjunction() {
+                    if (this.newConjunction.trim()) {
+                        const conjunction = this.newConjunction.trim();
+                        if (!this.data.conjunctions.includes(conjunction)) {
+                            this.data.conjunctions.push(conjunction);
+                            this.newConjunction = '';
+                            this.saveToLocalStorage();
+                        } else {
+                            alert('Conjunction already exists!');
+                        }
+                    }
+                },
+
+                removeTemplate(index) {
+                    this.data.templates.splice(index, 1);
+                    this.saveToLocalStorage();
+                },
+
+                removeCategory(category) {
+                    delete this.data.categories[category];
+                    if (this.selectedCategory === category) {
+                        this.selectedCategory = '';
+                    }
+                    this.saveToLocalStorage();
+                },
+
+                removeNoun(noun) {
+                    if (this.selectedCategory) {
+                        const nouns = this.data.categories[this.selectedCategory];
+                        const index = nouns.indexOf(noun);
+                        if (index > -1) {
+                            nouns.splice(index, 1);
+                            this.saveToLocalStorage();
+                        }
+                    }
+                },
+
+                removeConjunction(index) {
+                    this.data.conjunctions.splice(index, 1);
+                    this.saveToLocalStorage();
+                },
+
+                generateMessage() {
+                    let message = '';
+                    
+                    if (this.selectedTemplate1 && this.selectedCategory1 && this.selectedNoun1) {
+                        message = this.selectedTemplate1.replace(/\*\*\*\*/g, this.selectedNoun1);
+                    }
+
+                    if (this.useConjunction && this.selectedConjunction && 
+                        this.selectedTemplate2 && this.selectedCategory2 && this.selectedNoun2) {
+                        message += ' ' + this.selectedConjunction + ' ' + 
+                                  this.selectedTemplate2.replace(/\*\*\*\*/g, this.selectedNoun2);
+                    }
+                    
+                    return message || 'Select template, category and noun to generate a message';
+                }
+            }))
+        })
+    </script>
+</body>
+</html>
