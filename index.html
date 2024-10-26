@@ -98,7 +98,7 @@
             <div class="editor-section">
                 <h2>Templates</h2>
                 <div class="inputs">
-                    <input type="text" x-model="newTemplate" placeholder="Enter template (use **** for noun placement)">
+                    <input type="text" x-model="newTemplate" placeholder="Enter template (use **** for word placement)" @keydown.enter="addTemplate">
                     <button @click="addTemplate">Add Template</button>
                 </div>
                 <div>
@@ -115,7 +115,7 @@
             <div class="editor-section">
                 <h2>Categories</h2>
                 <div class="inputs">
-                    <input type="text" x-model="newCategory" placeholder="Enter category">
+                    <input type="text" x-model="newCategory" placeholder="Enter category" @keydown.enter="addCategory">
                     <button @click="addCategory">Add Category</button>
                 </div>
                 <div>
@@ -133,26 +133,26 @@
                 </div>
             </div>
 
-            <!-- Nouns Section -->
+            <!-- Words Section -->
             <div class="editor-section">
-                <h2>Nouns</h2>
+                <h2>Words</h2>
                 <div x-show="selectedCategory">
                     <h3 x-text="'Category: ' + selectedCategory"></h3>
                     <div class="inputs">
-                        <input type="text" x-model="newNoun" placeholder="Enter noun">
-                        <button @click="addNoun">Add Noun</button>
+                        <input type="text" x-model="newWord" placeholder="Enter word" @keydown.enter="addWord">
+                        <button @click="addWord">Add Word</button>
                     </div>
                     <div>
-                        <template x-for="noun in data.categories[selectedCategory]" :key="noun">
+                        <template x-for="word in data.categories[selectedCategory]" :key="word">
                             <div class="items">
-                                <span x-text="noun"></span>
-                                <button @click="removeNoun(noun)">Remove</button>
+                                <span x-text="word"></span>
+                                <button @click="removeWord(word)">Remove</button>
                             </div>
                         </template>
                     </div>
                 </div>
                 <div x-show="!selectedCategory">
-                    <p>Select a category to edit nouns</p>
+                    <p>Select a category to edit words</p>
                 </div>
             </div>
 
@@ -160,7 +160,7 @@
             <div class="editor-section">
                 <h2>Conjunctions</h2>
                 <div class="inputs">
-                    <input type="text" x-model="newConjunction" placeholder="Enter conjunction">
+                    <input type="text" x-model="newConjunction" placeholder="Enter conjunction" @keydown.enter="addConjunction">
                     <button @click="addConjunction">Add Conjunction</button>
                 </div>
                 <div>
@@ -192,15 +192,15 @@
                             <option x-text="category"></option>
                         </template>
                     </select>
-                    <select x-model="selectedNoun1" x-show="selectedCategory1">
-                        <option value="">Select Noun</option>
-                        <template x-for="noun in data.categories[selectedCategory1] || []" :key="noun">
-                            <option x-text="noun"></option>
+                    <select x-model="selectedWord1" x-show="selectedCategory1">
+                        <option value="">Select Word</option>
+                        <template x-for="word in data.categories[selectedCategory1] || []" :key="word">
+                            <option x-text="word"></option>
                         </template>
                     </select>
                 </div>
 
-                <div x-show="selectedTemplate1 && selectedNoun1">
+                <div x-show="selectedTemplate1 && selectedWord1">
                     <h2>
                         <label>
                             <input type="checkbox" x-model="useConjunction">
@@ -227,10 +227,10 @@
                                     <option x-text="category"></option>
                                 </template>
                             </select>
-                            <select x-model="selectedNoun2" x-show="selectedCategory2">
-                                <option value="">Select Noun</option>
-                                <template x-for="noun in data.categories[selectedCategory2] || []" :key="noun">
-                                    <option x-text="noun"></option>
+                            <select x-model="selectedWord2" x-show="selectedCategory2">
+                                <option value="">Select Word</option>
+                                <template x-for="word in data.categories[selectedCategory2] || []" :key="word">
+                                    <option x-text="word"></option>
                                 </template>
                             </select>
                         </div>
@@ -267,16 +267,16 @@
                 })),
                 newTemplate: '',
                 newCategory: '',
-                newNoun: '',
+                newWord: '',
                 newConjunction: '',
                 selectedCategory: '',
                 selectedTemplate1: '',
                 selectedCategory1: '',
-                selectedNoun1: '',
+                selectedWord1: '',
                 selectedConjunction: '',
                 selectedTemplate2: '',
                 selectedCategory2: '',
-                selectedNoun2: '',
+                selectedWord2: '',
                 useConjunction: false,
 
                 getCategoryNames() {
@@ -332,14 +332,14 @@
                     }
                 },
 
-                addNoun() {
-                    if (this.newNoun.trim() && this.selectedCategory) {
-                        if (!this.data.categories[this.selectedCategory].includes(this.newNoun.trim())) {
-                            this.data.categories[this.selectedCategory].push(this.newNoun.trim());
-                            this.newNoun = '';
+                addWord() {
+                    if (this.newWord.trim() && this.selectedCategory) {
+                        if (!this.data.categories[this.selectedCategory].includes(this.newWord.trim())) {
+                            this.data.categories[this.selectedCategory].push(this.newWord.trim());
+                            this.newWord = '';
                             this.saveToLocalStorage();
                         } else {
-                            alert('Noun already exists!');
+                            alert('Word already exists!');
                         }
                     }
                 },
@@ -370,12 +370,12 @@
                     this.saveToLocalStorage();
                 },
 
-                removeNoun(noun) {
+                removeWord(word) {
                     if (this.selectedCategory) {
-                        const nouns = this.data.categories[this.selectedCategory];
-                        const index = nouns.indexOf(noun);
+                        const words = this.data.categories[this.selectedCategory];
+                        const index = words.indexOf(word);
                         if (index > -1) {
-                            nouns.splice(index, 1);
+                            words.splice(index, 1);
                             this.saveToLocalStorage();
                         }
                     }
@@ -389,17 +389,17 @@
                 generateMessage() {
                     let message = '';
                     
-                    if (this.selectedTemplate1 && this.selectedCategory1 && this.selectedNoun1) {
-                        message = this.selectedTemplate1.replace(/\*\*\*\*/g, this.selectedNoun1);
+                    if (this.selectedTemplate1 && this.selectedCategory1 && this.selectedWord1) {
+                        message = this.selectedTemplate1.replace(/\*\*\*\*/g, this.selectedWord1);
                     }
 
                     if (this.useConjunction && this.selectedConjunction && 
-                        this.selectedTemplate2 && this.selectedCategory2 && this.selectedNoun2) {
+                        this.selectedTemplate2 && this.selectedCategory2 && this.selectedWord2) {
                         message += ' ' + this.selectedConjunction + ' ' + 
-                                  this.selectedTemplate2.replace(/\*\*\*\*/g, this.selectedNoun2);
+                                  this.selectedTemplate2.replace(/\*\*\*\*/g, this.selectedWord2);
                     }
                     
-                    return message || 'Select template, category and noun to generate a message';
+                    return message || 'Select template, category and word to generate a message';
                 }
             }))
         })
