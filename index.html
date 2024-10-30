@@ -172,6 +172,28 @@
                     </template>
                 </div>
             </div>
+
+            <!-- Adjectives Section -->
+            <div class="editor-section">
+                <h2>Adjectives</h2>
+                <div class="inputs">
+                    <input 
+                        type="text" 
+                        x-model="newAdjective" 
+                        placeholder="Enter adjective" 
+                        @keydown.enter="addAdjective"
+                    >
+                    <button @click="addAdjective">Add Adjective</button>
+                </div>
+                <div>
+                    <template x-for="(adjective, index) in data.adjectives" :key="index">
+                        <div class="items">
+                            <span x-text="adjective"></span>
+                            <button @click="removeAdjective(index)">Remove</button>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
 
         <!-- Message Builder -->
@@ -192,12 +214,19 @@
                             <option x-text="category"></option>
                         </template>
                     </select>
+                    <select x-model="selectedAdjective1">
+                        <option value="">Select Adjective (optional)</option>
+                        <template x-for="adjective in data.adjectives" :key="adjective">
+                            <option x-text="adjective"></option>
+                        </template>
+                    </select>
                     <select x-model="selectedWord1" x-show="selectedCategory1">
                         <option value="">Select Word</option>
                         <template x-for="word in data.categories[selectedCategory1] || []" :key="word">
                             <option x-text="word"></option>
                         </template>
                     </select>
+
                 </div>
 
                 <div x-show="selectedTemplate1 && selectedWord1">
@@ -225,6 +254,12 @@
                                 <option value="">Select Category</option>
                                 <template x-for="category in getCategoryNames()" :key="category">
                                     <option x-text="category"></option>
+                                </template>
+                            </select>
+                            <select x-model="selectedAdjective2">
+                                <option value="">Select Adjective (optional)</option>
+                                <template x-for="adjective in data.adjectives" :key="adjective">
+                                    <option x-text="adjective"></option>
                                 </template>
                             </select>
                             <select x-model="selectedWord2" x-show="selectedCategory2">
@@ -263,6 +298,7 @@
                 data: JSON.parse(localStorage.getItem('messageData') || JSON.stringify({
                     templates: [],
                     categories: {},
+                    adjectives: [],
                     conjunctions: []
                 })),
                 newTemplate: '',
@@ -278,7 +314,15 @@
                 selectedCategory2: '',
                 selectedWord2: '',
                 useConjunction: false,
+                newAdjective: '',
+                selectedAdjective1: '',
+                selectedAdjective2: '',
 
+                init() {
+                    if (!this.data.adjectives) {
+                        this.data.adjectives = [];
+                    }
+                },
                 getCategoryNames() {
                     return Object.keys(this.data.categories);
                 },
@@ -386,17 +430,37 @@
                     this.saveToLocalStorage();
                 },
 
+                addAdjective() {
+                    if (this.newAdjective.trim()) {
+                        const adjective = this.newAdjective.trim();
+                        if (!this.data.adjectives.includes(adjective)) {
+                            this.data.adjectives.push(adjective);
+                            this.newAdjective = '';
+                            this.saveToLocalStorage();
+                        } else {
+                            alert('Adjective already exists!');
+                        }
+                    }
+                },
+
+                removeAdjective(index) {
+                    this.data.adjectives.splice(index, 1);
+                    this.saveToLocalStorage();
+                },
+
                 generateMessage() {
                     let message = '';
                     
                     if (this.selectedTemplate1 && this.selectedCategory1 && this.selectedWord1) {
-                        message = this.selectedTemplate1.replace(/\*\*\*\*/g, this.selectedWord1);
+                        const adjective = this.selectedAdjective1 ? this.selectedAdjective1 + ' ' : '';
+                        message = this.selectedTemplate1.replace(/\*\*\*\*/g, adjective + this.selectedWord1);
                     }
 
                     if (this.useConjunction && this.selectedConjunction && 
                         this.selectedTemplate2 && this.selectedCategory2 && this.selectedWord2) {
+                        const adjective2 = this.selectedAdjective2 ? this.selectedAdjective2 + ' ' : '';
                         message += ' ' + this.selectedConjunction + ' ' + 
-                                  this.selectedTemplate2.replace(/\*\*\*\*/g, this.selectedWord2);
+                                  this.selectedTemplate2.replace(/\*\*\*\*/g, adjective2 + this.selectedWord2);
                     }
                     
                     return message || 'Select template, category and word to generate a message';
